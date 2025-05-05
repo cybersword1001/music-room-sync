@@ -16,9 +16,25 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const normalizeYouTubeUrl = (url: string) => {
+    // Handle youtu.be short links
+    const shortRegex = /^https?:\/\/youtu\.be\/([a-zA-Z0-9_-]{11})/;
+    const shortMatch = url.match(shortRegex);
+    if (shortMatch) {
+      return `https://www.youtube.com/watch?v=${shortMatch[1]}`;
+    }
+    
+    // Handle other YouTube URL formats if needed
+    // For now, return the original URL if it's not a short link
+    return url;
+  };
+
   const extractVideoId = (url: string) => {
+    // Normalize the URL first
+    const normalizedUrl = normalizeYouTubeUrl(url);
+    
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
+    const match = normalizedUrl.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
   };
 
@@ -53,7 +69,10 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
       return;
     }
 
-    const videoId = extractVideoId(songUrl);
+    // Normalize the URL before extracting video ID
+    const normalizedUrl = normalizeYouTubeUrl(songUrl);
+    const videoId = extractVideoId(normalizedUrl);
+    
     if (!videoId) {
       toast({
         title: "Invalid URL",
