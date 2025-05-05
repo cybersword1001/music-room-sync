@@ -8,6 +8,7 @@ import { JoinRoomModal } from '@/components/JoinRoomModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { Room, supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -20,6 +21,20 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
+        // Check if the rooms table exists first
+        const { error: tableError } = await supabase
+          .from('rooms')
+          .select('count')
+          .limit(1)
+          .single();
+          
+        if (tableError) {
+          console.log('Rooms table might not exist yet:', tableError);
+          setRooms([]);
+          setIsLoading(false);
+          return;
+        }
+        
         const { data, error } = await supabase
           .from('rooms')
           .select('*')
@@ -58,15 +73,18 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b shadow-sm py-4 px-6 flex justify-between items-center">
+    <div className="min-h-screen bg-background dark:bg-gray-900 transition-colors duration-200">
+      <header className="border-b shadow-sm py-4 px-6 flex justify-between items-center bg-background dark:bg-gray-900 dark:border-gray-800">
         <h1 className="text-2xl font-bold text-tune-primary">TuneTogether</h1>
-        <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+        <div className="flex items-center space-x-4">
+          <ThemeToggle />
+          <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
+        </div>
       </header>
 
       <main className="container mx-auto py-8 px-4">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold">Music Rooms</h2>
+          <h2 className="text-2xl font-semibold dark:text-white">Music Rooms</h2>
           <div className="flex space-x-2">
             <Button 
               variant="outline" 
@@ -96,7 +114,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 dark:text-white">
             <h3 className="text-xl mb-4">No rooms available</h3>
             <p className="mb-6 text-muted-foreground">Create a new room or join with a room code</p>
             <div className="flex justify-center space-x-4">
