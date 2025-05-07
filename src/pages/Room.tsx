@@ -7,13 +7,16 @@ import { SongQueue } from '@/components/SongQueue';
 import { AddSongForm } from '@/components/AddSongForm';
 import { Room as RoomType, Song, supabase } from '@/lib/supabase';
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Users } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export default function Room() {
   const { id } = useParams();
   const [room, setRoom] = useState<RoomType | null>(null);
   const [currentSong, setCurrentSong] = useState<Song | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeUsers, setActiveUsers] = useState<number>(1); // Default to 1 (current user)
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -86,9 +89,12 @@ export default function Room() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse-light text-tune-primary font-semibold">
-          Loading Room...
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-12 h-12 rounded-full border-4 border-t-tune-primary border-b-transparent border-l-tune-primary/50 border-r-tune-primary/80 animate-spin"></div>
+          <div className="text-tune-primary font-semibold">
+            Loading Music Room...
+          </div>
         </div>
       </div>
     );
@@ -96,43 +102,60 @@ export default function Room() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b shadow-sm py-4 px-6 flex justify-between items-center">
+      <header className="border-b shadow-sm py-4 px-6 flex justify-between items-center bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-semibold">{room?.room_name}</h1>
         </div>
-        <div>
-          <span className="text-sm font-medium">Room Code: </span>
-          <span className="font-mono text-tune-primary">{room?.room_code}</span>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Users className="h-4 w-4 text-tune-primary" />
+            <span>{activeUsers} active</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Room Code: </span>
+            <span className="font-mono bg-tune-primary/10 text-tune-primary px-2 py-0.5 rounded-md">{room?.room_code}</span>
+          </div>
+          <ThemeToggle />
         </div>
       </header>
 
       <main className="container mx-auto py-6 px-4 max-w-4xl">
         <div className="space-y-6">
           {currentSong ? (
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Now Playing</h2>
-              <div className="rounded-lg overflow-hidden border">
-                <YouTubePlayer 
-                  videoId={currentSong.url}
-                  onEnded={handleSongEnded}
-                  height="100%"
-                  width="100%"
-                />
+            <div className="space-y-2 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Now Playing</h2>
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-tune-primary/20 text-tune-primary text-xs">
+                      {currentSong.added_by.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm text-muted-foreground">Added by user</span>
+                </div>
               </div>
-              <div className="pt-2">
-                <h3 className="font-medium">{currentSong.title}</h3>
-                {currentSong.artist && (
-                  <p className="text-sm text-muted-foreground">{currentSong.artist}</p>
-                )}
-              </div>
+              <YouTubePlayer 
+                videoId={currentSong.url}
+                onEnded={handleSongEnded}
+                title={currentSong.title}
+                artist={currentSong.artist}
+                thumbnail={currentSong.thumbnail}
+                isHost={true} // TODO: Add actual host check
+                height="100%"
+                width="100%"
+              />
             </div>
           ) : (
-            <div className="bg-card border rounded-lg p-8 text-center">
+            <div className="bg-card border rounded-lg p-8 text-center shadow-md">
               <h2 className="text-xl font-semibold mb-4">No song playing</h2>
               <p className="text-muted-foreground mb-4">Add songs to the queue to get started!</p>
+              <div className="animate-pulse-light mx-auto w-16 h-16 rounded-full bg-tune-primary/20 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-t-tune-primary border-b-transparent border-l-tune-primary border-r-transparent rounded-full animate-spin"></div>
+              </div>
             </div>
           )}
 

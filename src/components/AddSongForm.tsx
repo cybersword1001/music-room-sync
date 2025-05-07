@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/hooks/use-toast";
+import { Music2 } from 'lucide-react';
 
 type AddSongFormProps = {
   roomId: string;
@@ -40,21 +41,30 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
 
   const getVideoInfo = async (videoId: string) => {
     try {
-      // In a real app, we'd use the YouTube API, but for this demo we'll use a simpler approach
+      // Using noembed.com as a proxy to get video info
       const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch video info: ${response.status}`);
+      }
+      
       const data = await response.json();
+      console.log("Video info fetched:", data);
+      
       return {
         title: data.title || 'Unknown Title',
         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-        // We could parse author from title or use data.author_name
         artist: data.author_name || 'Unknown Artist',
+        duration: '0:00', // YouTube API doesn't provide duration via noembed
       };
     } catch (error) {
       console.error('Error fetching video info:', error);
+      // Return fallback data if we can't fetch info
       return {
         title: 'Unknown Title',
         thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
         artist: 'Unknown Artist',
+        duration: '0:00',
       };
     }
   };
@@ -69,23 +79,36 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
       return;
     }
 
-    // Normalize the URL before extracting video ID
-    const normalizedUrl = normalizeYouTubeUrl(songUrl);
-    const videoId = extractVideoId(normalizedUrl);
-    
-    if (!videoId) {
-      toast({
-        title: "Invalid URL",
-        description: "Please enter a valid YouTube URL",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setIsAdding(true);
       
+      // Normalize the URL before extracting video ID
+      const normalizedUrl = normalizeYouTubeUrl(songUrl);
+      const videoId = extractVideoId(normalizedUrl);
+      
+      if (!videoId) {
+        toast({
+          title: "Invalid URL",
+          description: "Please enter a valid YouTube URL",
+          variant: "destructive"
+        });
+        setIsAdding(false);
+        return;
+      }
+      
       const videoInfo = await getVideoInfo(videoId);
+
+      // Log the data we're going to insert
+      console.log("Inserting song with data:", {
+        room_id: roomId,
+        title: videoInfo.title,
+        url: videoId,
+        added_by: user.id,
+        votes: 0,
+        is_playing: false,
+        thumbnail: videoInfo.thumbnail,
+        artist: videoInfo.artist,
+      });
       
       const { error } = await supabase
         .from('songs')
@@ -100,7 +123,10 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
           artist: videoInfo.artist,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error adding song:', error);
+        throw error;
+      }
 
       toast({
         title: "Song Added",
@@ -110,9 +136,20 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
       setSongUrl('');
     } catch (error) {
       console.error('Error adding song:', error);
+      
+      // More informative error messages
+      let errorMessage = "Failed to add song. Please try again.";
+      if (error instanceof Error) {
+        if (error.message.includes("404")) {
+          errorMessage = "Video not found. It may be private or deleted.";
+        } else if (error.message.includes("403")) {
+          errorMessage = "This video has restricted playback. Try another one.";
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to add song. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -121,23 +158,29 @@ export function AddSongForm({ roomId }: AddSongFormProps) {
   };
 
   return (
-    <div className="mt-6 space-y-2">
-      <h2 className="text-xl font-semibold">Add a Song</h2>
+    <div className="mt-6 space-y-4 bg-card border rounded-lg p-6 shadow-md">
+      <h2 className="text-xl font-semibold flex items-center gap-2">
+        <Music2 className="h-5 w-5 text-tune-primary" />
+        <span>Add a Song</span>
+      </h2>
       <div className="flex space-x-2">
         <Input
           placeholder="Paste YouTube URL"
           value={songUrl}
           onChange={(e) => setSongUrl(e.target.value)}
-          className="flex-1"
+          className="flex-1 bg-background/50 border-tune-primary/20 focus:border-tune-primary/50 rounded-full px-4"
         />
         <Button 
           onClick={handleAddSong} 
           disabled={isAdding || !songUrl}
-          className="bg-tune-primary hover:bg-tune-primary/90"
+          className="bg-tune-primary hover:bg-tune-primary/90 rounded-full px-6 transition-all transform hover:scale-105 shadow-md"
         >
-          {isAdding ? "Adding..." : "Add"}
+          {isAdding ? "Adding..." : "Add Song"}
         </Button>
       </div>
+      <p className="text-xs text-muted-foreground italic">
+        Tip: Both standard YouTube links and shortened youtu.be URLs work!
+      </p>
     </div>
   );
 }
