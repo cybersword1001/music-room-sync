@@ -22,14 +22,20 @@ export function SongQueue({ roomId, currentSong, setCurrentSong }: SongQueueProp
   useEffect(() => {
     const fetchSongs = async () => {
       try {
+        console.log('Fetching songs for room:', roomId);
         const { data: songsData, error } = await supabase
           .from('songs')
           .select('*')
-          .eq('room_id', roomId)
+          .eq('room_id', roomId) // This is correct per your SQL schema
           .order('votes', { ascending: false })
           .order('added_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching songs:', error);
+          throw error;
+        }
+        
+        console.log('Songs fetched successfully:', songsData);
         setSongs(songsData || []);
         
         // Set current song if not set already

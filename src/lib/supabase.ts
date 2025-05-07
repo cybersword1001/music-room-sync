@@ -12,6 +12,7 @@ export type User = {
   username?: string;
 };
 
+// These types match your schema in setup.sql
 export type Room = {
   id: string;
   room_name: string;
@@ -22,7 +23,7 @@ export type Room = {
 
 export type Song = {
   id: string;
-  room_id: string;
+  room_id: string; // This is correct per your SQL schema
   title: string;
   url: string;
   added_by: string;

@@ -25,13 +25,19 @@ export default function Room() {
       if (!id) return;
 
       try {
+        console.log('Fetching room details for ID:', id);
         const { data, error } = await supabase
           .from('rooms')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching room details:', error);
+          throw error;
+        }
+        
+        console.log('Room fetched successfully:', data);
         setRoom(data);
       } catch (error) {
         console.error('Error fetching room:', error);
@@ -60,7 +66,7 @@ export default function Room() {
         .eq('id', currentSong.id);
       
       // Get the next song with highest votes
-      const { data: nextSongs } = await supabase
+      const { data: nextSongs, error } = await supabase
         .from('songs')
         .select('*')
         .eq('room_id', id)
@@ -69,8 +75,14 @@ export default function Room() {
         .order('added_at', { ascending: true })
         .limit(1);
       
+      if (error) {
+        console.error('Error fetching next song:', error);
+        throw error;
+      }
+      
       if (nextSongs && nextSongs.length > 0) {
         const nextSong = nextSongs[0];
+        console.log('Playing next song:', nextSong);
         
         // Mark the next song as playing
         await supabase
