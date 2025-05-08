@@ -1,0 +1,23 @@
+/* ...existing code... */
+body {
+    background-color: #f0f0f0 !important; /* Light gray background */
+    color: #000000 !important; /* Fully black font color */
+}
+/* ...existing code... */
+h1, h2, h3, h4, h5, h6, p, span, div {
+    color: #000000 !important; /* Ensure all text elements are black */
+}
+
+button {
+    /* High-contrast button styles */
+    background-color: #6b46c1; /* Purple */
+    color: #ffffff; /* White text */
+    border-radius: 8px; /* Rounded corners */
+    padding: 10px 20px; /* Padding for a modern look */
+}
+
+button:hover {
+    /* Slightly darker purple on hover */
+    background-color: #553c9a;
+}
+/* ...existing code... */
